@@ -19,17 +19,15 @@ struct JournalAppView: View {
     @State private var showNewJournalSheet: Bool = false // State to control sheet visibility
     @State private var journalEntries: [JournalEntry] = [] // Array to hold journal entries
     @State private var searchText: String = "" // State variable for the search text
-    @State private var entryToEdit: JournalEntry? = nil // State to hold entry being edited
-    
+    @State private var showingEditSheet: Bool = false // State for showing edit sheet
+    @State private var selectedJournal: JournalEntry? // To keep track of selected journal entry for editing
+
     // Computed property to filter journal entries based on search text
     var filteredEntries: [JournalEntry] {
-        let entries = filterOption == "Bookmark"
-            ? journalEntries.filter { $0.isBookmarked }
-            : journalEntries
         if searchText.isEmpty {
-            return entries
+            return journalEntries // Return all entries if search text is empty
         } else {
-            return entries.filter { entry in
+            return journalEntries.filter { entry in
                 entry.title.localizedCaseInsensitiveContains(searchText) ||
                 entry.content.localizedCaseInsensitiveContains(searchText)
             }
@@ -37,17 +35,19 @@ struct JournalAppView: View {
     }
 
     var body: some View {
-        VStack {
-            // Header Section with Title and Menu Button
-            HStack {
-                Text("Journal")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundColor(.white)
-                Spacer()
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack {
+                // Header Section with Title and Menu Button
                 HStack {
+                    Text("Journal")
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.white)
+                    Spacer()
                     // Menu Button for Filtration
                     Menu {
+                        // Filter by Bookmark
                         Button(action: {
                             filterOption = "Bookmark"
                             applyFilter(option: filterOption)
@@ -55,6 +55,7 @@ struct JournalAppView: View {
                             Label("Bookmark", systemImage: "bookmark")
                         }
                         
+                        // Filter by Journal Date
                         Button(action: {
                             filterOption = "Journal Date"
                             applyFilter(option: filterOption)
@@ -64,7 +65,7 @@ struct JournalAppView: View {
                     } label: {
                         Image(systemName: "line.horizontal.3.decrease")
                             .font(.title)
-                            .foregroundColor(.purple)
+                            .foregroundColor(.lavender)
                             .padding(12)
                             .background(Circle().fill(Color.gray.opacity(0.4)))
                     }
@@ -74,133 +75,141 @@ struct JournalAppView: View {
                         showNewJournalSheet.toggle() // Toggle the sheet visibility
                     }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.purple)
+                            .foregroundColor(.lavender)
                             .font(.title)
                             .padding(8)
                             .background(Circle().fill(Color.gray.opacity(0.4)))
                     }
                 }
-            }
-            .padding()
-            .background(Color.black)
-            
-            // Search Bar with Icons
-            HStack {
-                TextField("  Search...", text: $searchText)
-                    .padding(.vertical, 9)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(10)
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, -10)
-                    .overlay(
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                // Action for voice recorder (placeholder)
-                                print("Voice recorder tapped")
-                            }) {
-                                Image(systemName: "mic.fill")
-                                    .foregroundColor(.gray)
-                                    .padding(1)
-                            }
-                        }
-                    )
-            }
-            .padding(.horizontal)
-            
-            Spacer()
-            
-            if filteredEntries.isEmpty {
-                Image("book1")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 77.7, height: 101)
-                    .padding(140)
+                .padding()
+                .background(Color.black)
                 
-                Text("Begin Your Journal")
-                    .bold()
-                    .foregroundColor(.lavender)
-                    .fontWeight(.heavy)
-                    .font(.system(size: 25))
-                
-                Text("Craft your personal diary, \ntap the plus icon to begin")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.white)
-                    .fontWeight(.medium)
-                    .padding(10)
-            }
-            
-            List {
-                ForEach(filteredEntries) { entry in
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(entry.title)
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.red)
-
-                            Spacer()
-                            Button(action: {
-                                if let index = journalEntries.firstIndex(where: { $0.id == entry.id }) {
-                                    journalEntries[index].isBookmarked.toggle()
+                // Search Bar with Icons
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    
+                    TextField("  Search...", text: $searchText)
+                        .padding(.vertical, 9)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(10)
+                        .overlay(
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    // Action for voice recorder (placeholder)
+                                    print("Voice recorder tapped")
+                                }) {
+                                    Image(systemName: "mic.fill")
+                                        .foregroundColor(.gray)
+                                        .padding()
                                 }
-                            }) {
-                                Image(systemName: entry.isBookmarked ? "bookmark.fill" : "bookmark")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.purple)
+                            }
+                        )
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+                
+                // If there are no entries, show the default image
+                if filteredEntries.isEmpty {
+                    Image("book1") // Make sure "book1" image exists in your assets
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 77.7, height: 101)
+                        .padding()
+                    
+                    Text("Begin Your Journal")
+                        .padding(10)
+                        .bold()
+                        .foregroundColor(.lavender)
+                        .fontWeight(.heavy)
+                        .font(.system(size: 25))
+                    
+                    Text("Craft your personal diary, \ntap the plus icon to begin")
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.white)
+                        .fontWeight(.medium)
+                } else {
+                    // Display saved journal entries
+                    List {
+                        ForEach(filteredEntries) { entry in
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(entry.title)
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundColor(.lavender)
+                                    
+                                    Spacer()
+                                    Button(action: {
+                                        if let index = journalEntries.firstIndex(where: { $0.id == entry.id }) {
+                                            journalEntries[index].isBookmarked.toggle()
+                                            saveEntries() // Save after bookmarking
+                                        }
+                                    }) {
+                                        Image(systemName: entry.isBookmarked ? "bookmark.fill" : "bookmark")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(.lavender)
+                                    }
+                                }
+                                Text(formatDate(entry.creationDate)) // Use creationDate here
+                                    .font(.subheadline)
+                                Text(entry.content)
+                                    .font(.body)
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button(action: {
+                                    selectedJournal = entry // Set the selected journal for editing
+                                    showingEditSheet.toggle() // Show the editing sheet
+                                }) {
+                                    Image(systemName: "pencil")
+                                }
+                                .tint(.purple) // Changed tint to a valid color
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(action: {
+                                    onDelete(entry: entry)
+                                }) {
+                                    Image(systemName: "trash.fill")
+                                }
+                                .tint(.red)
                             }
                         }
-                        Text(entry.creationDate, style: .date)
-                            .font(.subheadline)
-                        Text(entry.content)
-                            .font(.body)
                     }
-                    .swipeActions(edge: .leading) {
-                        Button(action: {
-                            onEdit(entry: entry)
-                        }) {
-                            Image(systemName: "pencil")
+                    .listRowSpacing(15) // Set the spacing between rows to 15 points
+                }
+                
+                Spacer()
+            }
+            .background(Color.black.edgesIgnoringSafeArea(.all))
+            .sheet(isPresented: $showNewJournalSheet) {
+                NewJournalSheet(journalEntries: $journalEntries, formatDate: formatDate) // Pass journalEntries and formatDate to the sheet
+            }
+            .sheet(isPresented: $showingEditSheet) {
+                if let entry = selectedJournal {
+                    NewJournalSheet(journalEntries: $journalEntries, selectedEntry: entry, formatDate: formatDate) // Pass selected entry and formatDate for editing
+                        .onDisappear {
+                            selectedJournal = nil // Reset the selected journal
                         }
-                        .tint(Color.purple)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(action: {
-                            onDelete(entry: entry)
-                        }) {
-                            Image(systemName: "trash.fill")
-                        }
-                        .tint(Color.red)
-                    }
                 }
             }
-            Spacer()
-        }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
-        .sheet(isPresented: $showNewJournalSheet) {
-            NewJournalSheet(journalEntries: $journalEntries, entryToEdit: $entryToEdit)
         }
         .onAppear {
-            loadEntries()
+            loadEntries() // Load entries when the view appears
         }
+    }
+    
+    // Function to format date
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
     
     // Function to handle filtering logic
     func applyFilter(option: String) {
         print("Filter applied: \(option)")
-    }
-    
-    // Edit entry function
-    func onEdit(entry: JournalEntry) {
-        entryToEdit = entry
-        showNewJournalSheet = true
-    }
-    
-    // Delete entry function
-    func onDelete(entry: JournalEntry) {
-        if let index = journalEntries.firstIndex(where: { $0.id == entry.id }) {
-            journalEntries.remove(at: index)
-            saveEntries() // Save changes after deletion
-        }
     }
     
     // Load entries from UserDefaults
@@ -218,76 +227,103 @@ struct JournalAppView: View {
             UserDefaults.standard.set(data, forKey: "journalEntries")
         }
     }
+
+    // Define onDelete function
+    func onDelete(entry: JournalEntry) {
+        journalEntries.removeAll { $0.id == entry.id }
+        saveEntries() // Ensure entries are saved after deletion
+    }
 }
 
 struct NewJournalSheet: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var journalEntries: [JournalEntry]
-    @Binding var entryToEdit: JournalEntry?
+    @Binding var journalEntries: [JournalEntry] // Use Binding to modify journalEntries
     @State private var journalTitle: String = ""
     @State private var journalContent: String = ""
-    @State var isBookmarked: Bool = false
+    @State private var isBookmarked: Bool = false
+    var selectedEntry: JournalEntry? // Optional entry for editing
+    var formatDate: (Date) -> String // Closure to format date
 
     var body: some View {
         VStack {
+            // Header with Cancel and Save buttons
             HStack {
-                Button("Cancel") {
-                    dismiss()
+                Button("cancel") {
+                    dismiss() // Dismiss the sheet
                 }
-                .foregroundColor(.purple)
+                .foregroundColor(.lavender)
                 
                 Spacer()
                 
                 Button("Save") {
-                    saveEntry()
-                    dismiss()
+                    saveEntry() // Call save function
+                    dismiss() // Dismiss after saving
                 }
-                .foregroundColor(.purple)
+                .foregroundColor(.lavender)
             }
-            .padding(.horizontal)
-           
+            .padding()
+
+            // Title input styled as per the screenshot
             TextField("Title", text: $journalTitle)
-                .font(.title)
-                .padding(.top, 10)
+                .font(.largeTitle)
+                .padding()
                 .foregroundColor(.white)
                 .bold()
-           
-            Text(Date().formatted(.dateTime.day().month().year()))
+            
+            // Date display
+            Text(formatDate(Date())) // Dynamically display the current date
                 .foregroundColor(.gray)
                 .padding(.trailing, 250)
-                
-            TextEditor(text: $journalContent)
-                .foregroundColor(.white)
+
+            // Journal entry input
+            TextField("Enter your journal", text: $journalContent)
                 .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(10)
+                .foregroundColor(.white)
+
             Spacer()
         }
         .padding()
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .onAppear {
-            if let entry = entryToEdit {
+            // Set values if editing an existing entry
+            if let entry = selectedEntry {
                 journalTitle = entry.title
                 journalContent = entry.content
                 isBookmarked = entry.isBookmarked
             }
         }
     }
-
+    
+    // Save journal entry to UserDefaults
     private func saveEntry() {
-        guard !journalTitle.isEmpty && !journalContent.isEmpty else { return }
+        // Validate that the title and content are not empty
+        guard !journalTitle.isEmpty && !journalContent.isEmpty else {
+            return
+        }
 
-        if let index = journalEntries.firstIndex(where: { $0.id == entryToEdit?.id }) {
-            journalEntries[index].title = journalTitle
-            journalEntries[index].content = journalContent
-            journalEntries[index].isBookmarked = isBookmarked
+        // Create a new entry
+        let newEntry = JournalEntry(title: journalTitle, content: journalContent, isBookmarked: isBookmarked)
+
+        // If editing an existing entry, replace it
+        if let selectedEntry = selectedEntry {
+            if let index = journalEntries.firstIndex(where: { $0.id == selectedEntry.id }) {
+                journalEntries[index] = newEntry // Replace the existing entry
+            }
         } else {
-            let newEntry = JournalEntry(title: journalTitle, content: journalContent, isBookmarked: isBookmarked)
+            // Add the new entry to the journalEntries array
             journalEntries.append(newEntry)
         }
-        
+
+        // Save updated entries to UserDefaults
         if let data = try? JSONEncoder().encode(journalEntries) {
             UserDefaults.standard.set(data, forKey: "journalEntries")
         }
+    }
+}
+
+
+struct JournalAppView_Previews: PreviewProvider {
+    static var previews: some View {
+        JournalAppView()
     }
 }

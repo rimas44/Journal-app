@@ -4,9 +4,15 @@
 //
 //  Created by Rimas Alshahrani on 18/04/1446 AH.
 //
-
 import SwiftUI
-
+@main
+struct Journal_appApp: App {
+    var body: some Scene {
+        WindowGroup {
+            JournalAppView()
+        }
+    }
+}
 struct ContentView: View {
     var body: some View {
         VStack {
@@ -19,6 +25,7 @@ struct ContentView: View {
                 .fontWeight(.heavy)
                 .font(.system(size: 40)) // Corrected font size modifier
             Text("Your thoughts, Your Story") // Corrected typo
+           
         }
     }
 }
